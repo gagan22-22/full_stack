@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>eCommerce UI</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    input, button { margin: 5px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 10px; }
+  </style>
+</head>
+<body>
+  <h2>Product Manager</h2>
+
+  <input type="text" id="name" placeholder="Product Name">
+  <input type="number" id="price" placeholder="Price">
+  <button onclick="addProduct()">Add</button>
+  <br><br>
+
+  <input type="text" id="search" placeholder="Search..." oninput="searchProduct()">
+
+  <table>
+    <thead>
+      <tr><th>Name</th><th>Price</th><th>Actions</th></tr>
+    </thead>
+    <tbody id="productTable"></tbody>
+  </table>
+
+  <script>
+    const apiUrl = '/api/products';
+
+    function fetchProducts() {
+      fetch(apiUrl)
+        .then(res => res.json())
+        .then(data => renderTable(data));
+    }
+
+    function renderTable(products) {
+      const tbody = document.getElementById('productTable');
+      tbody.innerHTML = '';
+      products.forEach(product => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td><input value="${product.name}" onchange="updateProduct('${product._id}', this.value, 'name')"></td>
+          <td><input value="${product.price}" onchange="updateProduct('${product._id}', this.value, 'price')"></td>
+          <td><button onclick="deleteProduct('${product._id}')">Delete</button></td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function addProduct() {
+      const name = document.getElementById('name').value;
+      const price = document.getElementById('price').value;
+
+      fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, price })
+      })
+      .then(() => {
+        document.getElementById('name').value = '';
+        document.getElementById('price').value = '';
+        fetchProducts();
+      });
+    }
+
+    function updateProduct(id, value, field) {
+      fetch(`${apiUrl}/${id}`)
+        .then(res => res.json())
+        .then(product => {
+          product[field] = value;
+          return fetch(`${apiUrl}/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(product)
+          });
+        })
+        .then(() => fetchProducts());
+    }
+
+    function deleteProduct(id) {
+      fetch(`${apiUrl}/${id}`, { method: 'DELETE' })
+        .then(() => fetchProducts());
+    }
+
+    function searchProduct() {
+      const query = document.getElementById('search').value;
+      fetch(`${apiUrl}/search?q=${encodeURIComponent(query)}`)
+        .then(res => res.json())
+        .then(data => renderTable(data));
+    }
+
+    fetchProducts();
+  </script>
+</body>
+</html>
